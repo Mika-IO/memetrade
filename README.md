@@ -1,6 +1,6 @@
-# 🤖 Blog com IA — Python + GitHub Pages
+# 🤖 Blog com IA — python3 + GitHub Pages
 
-Blog 100% Python. Sem Ruby, sem Jekyll. Gera posts com IA, compila Markdown → HTML, testa local e publica no GitHub Pages.
+Blog 100% python3. Sem Ruby, sem Jekyll. Gera posts com IA, compila Markdown → HTML, testa local e publica no GitHub Pages.
 
 ## Setup (Mac)
 
@@ -13,16 +13,16 @@ export ANTHROPIC_API_KEY="sk-ant-sua-chave-aqui"
 
 ```bash
 # 1. Gerar post com IA
-python gerar_post.py -t "Introdução ao Python"
-python gerar_post.py -t "Docker Prático" -p "Use analogias, foque em comandos"
-python gerar_post.py -t "Resumo React 19" -l "https://react.dev/blog/..."
+python3 gerar_post.py -t "Introdução ao python3"
+python3 gerar_post.py -t "Docker Prático" -p "Use analogias, foque em comandos"
+python3 gerar_post.py -t "Resumo React 19" -l "https://react.dev/blog/..."
 
 # 2. Compilar HTML e testar local
-python build.py --serve
+python3 build.py --serve
 # Abre http://localhost:8000
 
 # 3. Publicar
-python build.py --publish
+python3 build.py --publish
 ```
 
 ## Estrutura
