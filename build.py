@@ -47,9 +47,9 @@ DEFAULT_COVERS = [
 ]
 
 I18N = {
-    "en": {"back": "← Back to home", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Your Blog on Autopilot"},
-    "pt": {"back": "← Voltar ao início", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Seu Blog no Piloto Automático"},
-    "es": {"back": "← Volver al inicio", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Tu Blog en Piloto Automático"},
+    "en": {"back": "← Back to home", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Your Blog on Autopilot"},
+    "pt": {"back": "← Voltar ao início", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Seu Blog no Piloto Automático"},
+    "es": {"back": "← Volver al inicio", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Tu Blog en Piloto Automático"},
 }
 
 
