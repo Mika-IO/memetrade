@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Como Automatizar Seu Blog com IA — Meu Blog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="logo">Meu Blog</a>
+      <p class="tagline">Blog gerado com IA</p>
+    </div>
+  </header>
+  <main class="container">
+    <article class="post">
+  <header class="post-header">
+    <time>19/03/2026</time>
+    <h1>Como Automatizar Seu Blog com IA</h1>
+  </header>
+  <div class="post-content">
+    <h2>Por que automatizar a criação de conteúdo?</h2>
+<p>Manter um blog atualizado exige tempo e consistência. Com ferramentas de IA generativa, é possível transformar uma ideia em um post completo em segundos, mantendo a qualidade e seu estilo pessoal.</p>
+<h2>O fluxo de trabalho</h2>
+<p>O processo é simples: você fornece um título, opcionalmente alguns links de referência e instruções extras, e a IA gera o conteúdo em Markdown. O script Python compila tudo em HTML estático, pronto para publicar.</p>
+<h3>Um comando, um post</h3>
+<div class="codehilite"><pre><span></span><code>python<span class="w"> </span>gerar_post.py<span class="w"> </span>--titulo<span class="w"> </span><span class="s2">&quot;Meu Assunto&quot;</span><span class="w"> </span>--prompt<span class="w"> </span><span class="s2">&quot;Foque em exemplos práticos&quot;</span>
+python<span class="w"> </span>build.py<span class="w"> </span>--serve
+</code></pre></div>
+
+<p>Teste localmente, e quando estiver satisfeito, publique com <code>python build.py --publish</code>.</p>
+<h2>Dicas para bons prompts</h2>
+<p>Quanto mais contexto você der à IA, melhor o resultado. Experimente:</p>
+<ul>
+<li>Definir o público-alvo: "escreva para iniciantes em programação"</li>
+<li>Pedir formato específico: "inclua exemplos de código em Python"</li>
+<li>Passar referências com <code>--links</code> para a IA usar como base</li>
+</ul>
+<h2>Conclusão</h2>
+<p>Automatizar não significa perder autenticidade. O segredo está em usar a IA como ferramenta de aceleração, sempre revisando e adicionando seu toque pessoal ao resultado final.</p>
+  </div>
+  <a href="../index.html" class="back-link">← Voltar</a>
+</article>
+
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>Meu Blog · Gerado com IA</p>
+    </div>
+  </footer>
+</body>
+</html>

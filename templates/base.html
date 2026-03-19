@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ site_desc }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,700;0,900;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ css_path }}assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{{ home_path }}index.html" class="logo">
+        <span class="logo-icon">⚡</span>{{ site_title }}
+      </a>
+      <div class="header-right">
+        <div class="lang-switch">{{ lang_switch }}</div>
+      </div>
+    </div>
+  </header>
+  <main class="container">
+    {{ content }}
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p class="footer-powered">{{ powered }}</p>
+      <p class="footer-copy">© 2026 pixbitcoin</p>
+    </div>
+  </footer>
+</body>
+</html>
