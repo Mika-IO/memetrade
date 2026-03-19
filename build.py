@@ -30,8 +30,8 @@ TEMPLATE_DIR = ROOT / "templates"
 
 # ── Config do blog (edite aqui) ──────────────────────────────
 SITE_TITLE = "MEMETRADE"
-SITE_DESC = "The latest world gossip to keep you updated."
-SITE_URL = "mikaio.dev/memetrade"  # ← mude para sua URL
+SITE_DESC = "The Latest Viral News"
+SITE_URL = "memetrade.org"  # ← mude para sua URL
 LANGUAGES = ["en", "pt", "es"]
 DEFAULT_LANG = "en"
 POSTS_PER_PAGE = 12
@@ -47,9 +47,9 @@ DEFAULT_COVERS = [
 ]
 
 I18N = {
-    "en": {"back": "← Back to home", "powered": "Powered by Aithor – Your Blog on Autopilot"},
-    "pt": {"back": "← Voltar ao início", "powered": "Powered by Aithor – Seu Blog no Piloto Automático"},
-    "es": {"back": "← Volver al inicio", "powered": "Powered by Aithor – Tu Blog en Piloto Automático"},
+    "en": {"back": "← Back to home", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Your Blog on Autopilot"},
+    "pt": {"back": "← Voltar ao início", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Seu Blog no Piloto Automático"},
+    "es": {"back": "← Volver al inicio", "powered": "Powered by <a href=\"https://aithor.com\">Aithor</a> – Tu Blog en Piloto Automático"},
 }
 
 

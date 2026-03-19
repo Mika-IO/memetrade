@@ -60,6 +60,20 @@ main.container {
   gap: 8px;
   text-transform: uppercase;
 }
+
+.desc {
+  font-size: 0.75rem;
+  max-width: 1100px;
+  font-weight: 700;
+  text-align: left;
+  margin: 0 auto;
+  padding: 0 1.5rem 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: block;
+}
+
 .logo-icon {
   font-size: 1.4rem;
 }

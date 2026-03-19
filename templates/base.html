@@ -11,15 +11,16 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container header-inner">
-      <a href="{{ home_path }}index.html" class="logo">
-        <span class="logo-icon">⚡</span>{{ site_title }}
-      </a>
-      <div class="header-right">
-        <div class="lang-switch">{{ lang_switch }}</div>
-      </div>
+  <div class="container header-inner">
+    <a href="{{ home_path }}index.html" class="logo">
+      <span class="logo-icon">⚡</span>{{ site_title }}
+    </a>
+    <div class="header-right">
+      <div class="lang-switch">{{ lang_switch }}</div>
     </div>
-  </header>
+  </div>
+  <p class="desc">{{ site_desc }}</p>
+</header>
   <main class="container">
     {{ content }}
   </main>
