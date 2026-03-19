@@ -31,7 +31,7 @@ TEMPLATE_DIR = ROOT / "templates"
 # ── Config do blog (edite aqui) ──────────────────────────────
 SITE_TITLE = "MEMETRADE"
 SITE_DESC = "The latest world gossip to keep you updated."
-SITE_URL = "https://seuusuario.github.io"  # ← mude para sua URL
+SITE_URL = "mikaio.dev/memetrade"  # ← mude para sua URL
 LANGUAGES = ["en", "pt", "es"]
 DEFAULT_LANG = "en"
 POSTS_PER_PAGE = 12
