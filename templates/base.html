@@ -4,30 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
-  <meta name="description" content="{{ site_desc }}">
+  <meta name="description" content="{{ meta_desc }}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ canonical }}">
+  {{ hreflang }}
+  <!-- OpenGraph -->
+  <meta property="og:type" content="{{ og_type }}">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ meta_desc }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:site_name" content="{{ site_title }}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:locale" content="{{ og_locale }}">
+  <meta property="og:updated_time" content="{{ og_updated }}">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ meta_desc }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+  <!-- Schema.org -->
+  <script type="application/ld+json">{{ schema_json }}</script>
+  <!-- Fonts & CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,700;0,900;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ css_path }}assets/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E⚡%3C/text%3E%3C/svg%3E">
 </head>
 <body>
   <header class="site-header">
-  <div class="container header-inner">
-    <a href="{{ home_path }}index.html" class="logo">
-      <span class="logo-icon">⚡</span>{{ site_title }}
-    </a>
-    <div class="header-right">
-      <div class="lang-switch">{{ lang_switch }}</div>
+    <div class="container header-inner">
+      <a href="{{ home_path }}index.html" class="logo">
+        <span class="logo-icon">⚡</span>{{ site_title }}
+      </a>
+      <nav class="header-right" aria-label="Language">
+        <div class="lang-switch">{{ lang_switch }}</div>
+      </nav>
     </div>
-  </div>
-  <p class="desc">{{ site_desc }}</p>
-</header>
+  </header>
   <main class="container">
     {{ content }}
   </main>
   <footer class="site-footer">
     <div class="container">
       <p class="footer-powered">{{ powered }}</p>
-      <p class="footer-copy">© 2026 pixbitcoin</p>
+      <p class="footer-copy">© 2026 memetrade</p>
     </div>
   </footer>
 </body>

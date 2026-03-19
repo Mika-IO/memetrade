@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: memetrade.org/sitemap.xml

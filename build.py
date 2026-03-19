@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Compila os posts Markdown em HTML estático com suporte multi-idioma.
+Compila os posts Markdown em HTML estático com SEO completo.
 
 Uso:
   python build.py              # gera HTML em docs/
-  python build.py --serve      # gera e abre servidor local em http://localhost:8000
+  python build.py --serve      # gera e abre servidor local
   python build.py --publish    # gera, commit e push
 """
 
 import argparse
 import http.server
+import json
 import os
 import re
 import subprocess
@@ -31,7 +32,7 @@ TEMPLATE_DIR = ROOT / "templates"
 # ── Config do blog (edite aqui) ──────────────────────────────
 SITE_TITLE = "MEMETRADE"
 SITE_DESC = "The Latest Viral News"
-SITE_URL = "memetrade.org"  # ← mude para sua URL
+SITE_URL = "memetrade.org"
 LANGUAGES = ["en", "pt", "es"]
 DEFAULT_LANG = "en"
 POSTS_PER_PAGE = 12
@@ -46,10 +47,24 @@ DEFAULT_COVERS = [
     "https://picsum.photos/seed/meme6/800/450",
 ]
 
+OG_LOCALES = {"en": "en_US", "pt": "pt_BR", "es": "es_ES"}
+
 I18N = {
-    "en": {"back": "← Back to home", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Your Blog on Autopilot"},
-    "pt": {"back": "← Voltar ao início", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Seu Blog no Piloto Automático"},
-    "es": {"back": "← Volver al inicio", "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Tu Blog en Piloto Automático"},
+    "en": {
+        "back": "← Back to home",
+        "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Your Blog on Autopilot",
+        "home_desc": "The latest world gossip to keep you updated. News, trends, and viral stories.",
+    },
+    "pt": {
+        "back": "← Voltar ao início",
+        "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Seu Blog no Piloto Automático",
+        "home_desc": "As últimas fofocas do mundo para te manter atualizado. Notícias, tendências e histórias virais.",
+    },
+    "es": {
+        "back": "← Volver al inicio",
+        "powered": "Powered by <a href=\"https://aithor.ca\">Aithor</a> – Tu Blog en Piloto Automático",
+        "home_desc": "Los últimos chismes del mundo para mantenerte actualizado. Noticias, tendencias e historias virales.",
+    },
 }
 
 
@@ -102,18 +117,77 @@ def get_post_lang(meta: dict) -> str:
     return lang if lang in LANGUAGES else DEFAULT_LANG
 
 
+def extract_description(html: str, max_len: int = 160) -> str:
+    """Extrai os primeiros ~160 chars do conteúdo como meta description."""
+    text = re.sub(r"<[^>]+>", "", html)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) > max_len:
+        text = text[:max_len].rsplit(" ", 1)[0] + "..."
+    return text
+
+
+def build_hreflang(lang: str, path: str) -> str:
+    """Gera link tags hreflang para todas as versões de idioma."""
+    tags = []
+    for l in LANGUAGES:
+        url = f"{SITE_URL}/{l}/{path}"
+        tags.append(f'<link rel="alternate" hreflang="{l}" href="{url}">')
+    tags.append(f'<link rel="alternate" hreflang="x-default" href="{SITE_URL}/{DEFAULT_LANG}/{path}">')
+    return "\n  ".join(tags)
+
+
 def build_lang_switcher(current_lang: str, base_path: str) -> str:
-    """Gera HTML do seletor de idioma. base_path é relativo à raiz do docs."""
     items = []
     for lang in LANGUAGES:
         label = lang.upper()
         if lang == current_lang:
             items.append(f'<span class="lang-active">{label}</span>')
         else:
-            # Caminho relativo do arquivo atual até a versão no outro idioma
             href = f"{base_path}{lang}/"
-            items.append(f'<a href="{href}">{label}</a>')
+            items.append(f'<a href="{href}" hreflang="{lang}">{label}</a>')
     return " ".join(items)
+
+
+def make_schema_website(lang: str) -> str:
+    """Schema.org WebSite para index."""
+    return json.dumps({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": SITE_TITLE,
+        "description": I18N[lang]["home_desc"],
+        "url": f"{SITE_URL}/{lang}/",
+        "inLanguage": lang,
+        "publisher": {
+            "@type": "Organization",
+            "name": SITE_TITLE,
+            "url": SITE_URL,
+        },
+    }, ensure_ascii=False)
+
+
+def make_schema_article(title: str, date: str, cover: str, url: str, desc: str, lang: str) -> str:
+    """Schema.org BlogPosting para posts."""
+    return json.dumps({
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": title,
+        "description": desc,
+        "image": cover,
+        "url": url,
+        "datePublished": date,
+        "dateModified": date,
+        "inLanguage": lang,
+        "author": {
+            "@type": "Organization",
+            "name": SITE_TITLE,
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": SITE_TITLE,
+            "url": SITE_URL,
+        },
+        "mainEntityOfPage": {"@type": "WebPage", "@id": url},
+    }, ensure_ascii=False)
 
 
 def build():
@@ -123,6 +197,7 @@ def build():
     post_tpl = read_template("post")
     index_tpl = read_template("index")
     md = markdown.Markdown(extensions=["fenced_code", "codehilite", "tables"])
+    now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     # Processa todos os posts
     all_posts = []
@@ -130,13 +205,15 @@ def build():
         raw = filepath.read_text(encoding="utf-8")
         meta, content = parse_front_matter(raw)
         md.reset()
+        html = md.convert(content)
         all_posts.append({
             "title": meta.get("title", filepath.stem),
             "date": meta.get("date", "")[:10],
             "slug": slugify(meta.get("title", filepath.stem)),
             "cover": meta.get("cover", ""),
             "lang": get_post_lang(meta),
-            "html": md.convert(content),
+            "html": html,
+            "desc": extract_description(html),
         })
 
     sitemap_entries = []
@@ -150,7 +227,6 @@ def build():
         for f in posts_dir.glob("*.html"):
             f.unlink()
 
-        # CSS por idioma
         css_dir = lang_dir / "assets" / "css"
         css_dir.mkdir(parents=True, exist_ok=True)
         (css_dir / "style.css").write_text(css_src, encoding="utf-8")
@@ -162,8 +238,10 @@ def build():
         for i, p in enumerate(lang_posts):
             cover = p["cover"] or DEFAULT_COVERS[i % len(DEFAULT_COVERS)]
             out_name = f"{p['date']}-{p['slug']}.html" if p["date"] else f"{p['slug']}.html"
+            post_url = f"{SITE_URL}/{lang}/posts/{out_name}"
 
             lang_sw = build_lang_switcher(lang, "../../")
+            hreflang = build_hreflang(lang, f"posts/{out_name}")
 
             post_body = render(post_tpl,
                 title=p["title"], date=p["date"],
@@ -173,11 +251,21 @@ def build():
             )
             page = render(base_tpl,
                 title=f"{p['title']} — {SITE_TITLE}",
+                meta_desc=p["desc"],
                 site_title=SITE_TITLE, site_desc=SITE_DESC,
                 css_path="../", home_path="../",
                 content=post_body, lang=lang,
                 lang_switch=lang_sw,
                 powered=strings["powered"],
+                canonical=post_url,
+                hreflang=hreflang,
+                og_type="article",
+                og_image=cover,
+                og_locale=OG_LOCALES.get(lang, "en_US"),
+                og_updated=now_iso,
+                schema_json=make_schema_article(
+                    p["title"], p["date"], cover, post_url, p["desc"], lang
+                ),
             )
             (posts_dir / out_name).write_text(page, encoding="utf-8")
             print(f"  ✅ /{lang}/posts/{out_name}")
@@ -187,10 +275,10 @@ def build():
                 "date_formatted": format_date(p["date"], lang),
                 "url": f"posts/{out_name}", "cover": cover,
             })
-            sitemap_entries.append(f"{SITE_URL}/{lang}/posts/{out_name}")
+            sitemap_entries.append((f"{SITE_URL}/{lang}/posts/{out_name}", p["date"]))
 
         # Paginação
-        total_pages = max(1, -(-len(built_posts) // POSTS_PER_PAGE))  # ceil division
+        total_pages = max(1, -(-len(built_posts) // POSTS_PER_PAGE))
 
         for page_num in range(1, total_pages + 1):
             start = (page_num - 1) * POSTS_PER_PAGE
@@ -200,14 +288,13 @@ def build():
             cards = ""
             for j, bp in enumerate(page_posts):
                 size = "card-hero" if j == 0 and page_num == 1 else ""
-                # Posts path: from index.html it's "posts/...", from page/N.html it's "../posts/..."
                 post_url = bp["url"] if page_num == 1 else f"../{bp['url']}"
                 cards += (
                     f'<li class="card {size}">'
                     f'<a href="{post_url}">'
-                    f'<img class="card-img" src="{bp["cover"]}" alt="{bp["title"]}">'
+                    f'<img class="card-img" src="{bp["cover"]}" alt="{bp["title"]}" loading="lazy">'
                     f'<div class="card-body">'
-                    f'<time>{bp["date_formatted"]}</time>'
+                    f'<time datetime="{bp["date"]}">{bp["date_formatted"]}</time>'
                     f'<h2>{bp["title"]}</h2>'
                     f'</div></a></li>\n'
                 )
@@ -215,30 +302,31 @@ def build():
             if not cards:
                 cards = '<li class="empty">No posts yet.</li>'
 
-            # Navegação entre páginas
             pagination = ""
             if total_pages > 1:
-                pagination = '<nav class="pagination">'
+                pagination = '<nav class="pagination" aria-label="Pagination">'
                 if page_num > 1:
                     prev_href = "../index.html" if page_num == 2 else f"{page_num - 1}.html"
                     pagination += f'<a href="{prev_href}" class="pg-prev">← Prev</a>'
                 else:
                     pagination += '<span class="pg-disabled">← Prev</span>'
-
                 pagination += f'<span class="pg-info">{page_num} / {total_pages}</span>'
-
                 if page_num < total_pages:
                     next_href = f"page/{page_num + 1}.html" if page_num == 1 else f"{page_num + 1}.html"
                     pagination += f'<a href="{next_href}" class="pg-next">Next →</a>'
                 else:
                     pagination += '<span class="pg-disabled">Next →</span>'
-
                 pagination += '</nav>'
 
             lang_sw = build_lang_switcher(lang, "../")
-            index_body = render(index_tpl, post_list=cards, pagination=pagination)
+            hreflang = build_hreflang(lang, "")
+            canonical_url = f"{SITE_URL}/{lang}/"
 
-            # CSS path depends on depth
+            index_body = render(index_tpl,
+                post_list=cards, pagination=pagination,
+                site_title=SITE_TITLE, site_desc=strings["home_desc"],
+            )
+
             if page_num == 1:
                 css_p, home_p = "", ""
                 out_file = lang_dir / "index.html"
@@ -247,14 +335,25 @@ def build():
                 page_dir = lang_dir / "page"
                 page_dir.mkdir(exist_ok=True)
                 out_file = page_dir / f"{page_num}.html"
+                canonical_url = f"{SITE_URL}/{lang}/page/{page_num}.html"
+
+            first_cover = built_posts[0]["cover"] if built_posts else f"{SITE_URL}/assets/og-default.jpg"
 
             index_page = render(base_tpl,
-                title=f"{SITE_TITLE} — {SITE_DESC}",
+                title=f"{SITE_TITLE} — {strings['home_desc'][:60]}",
+                meta_desc=strings["home_desc"],
                 site_title=SITE_TITLE, site_desc=SITE_DESC,
                 css_path=css_p, home_path=home_p,
                 content=index_body, lang=lang,
                 lang_switch=lang_sw,
                 powered=strings["powered"],
+                canonical=canonical_url,
+                hreflang=hreflang,
+                og_type="website",
+                og_image=first_cover,
+                og_locale=OG_LOCALES.get(lang, "en_US"),
+                og_updated=now_iso,
+                schema_json=make_schema_website(lang),
             )
             out_file.write_text(index_page, encoding="utf-8")
 
@@ -263,21 +362,31 @@ def build():
             else:
                 print(f"  ✅ /{lang}/page/{page_num}.html ({len(page_posts)} posts)")
 
-        sitemap_entries.append(f"{SITE_URL}/{lang}/")
+        sitemap_entries.append((f"{SITE_URL}/{lang}/", now_iso[:10]))
 
-    # Root redirect → /en/
-    (DOCS_DIR / "index.html").write_text(
-        f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/{DEFAULT_LANG}/"></head><body></body></html>',
-        encoding="utf-8",
+    # Root redirect
+    root_html = (
+        f'<!DOCTYPE html><html lang="{DEFAULT_LANG}"><head>'
+        f'<meta charset="utf-8">'
+        f'<meta http-equiv="refresh" content="0;url=/{DEFAULT_LANG}/">'
+        f'<link rel="canonical" href="{SITE_URL}/{DEFAULT_LANG}/">'
+        f'<title>{SITE_TITLE}</title>'
+        f'</head><body></body></html>'
     )
+    (DOCS_DIR / "index.html").write_text(root_html, encoding="utf-8")
 
-    # Sitemap
+    # Sitemap com lastmod
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for url in sitemap_entries:
-        sitemap += f'  <url><loc>{url}</loc></url>\n'
+    for url, lastmod in sitemap_entries:
+        sitemap += f'  <url><loc>{url}</loc><lastmod>{lastmod}</lastmod></url>\n'
     sitemap += '</urlset>'
     (DOCS_DIR / "sitemap.xml").write_text(sitemap, encoding="utf-8")
     print(f"  ✅ sitemap.xml ({len(sitemap_entries)} URLs)")
+
+    # robots.txt
+    robots = f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}/sitemap.xml\n"
+    (DOCS_DIR / "robots.txt").write_text(robots, encoding="utf-8")
+    print("  ✅ robots.txt")
 
     (DOCS_DIR / ".nojekyll").touch()
     print(f"\n✨ MEMETRADE compilado ({len(all_posts)} posts, {len(LANGUAGES)} idiomas)")

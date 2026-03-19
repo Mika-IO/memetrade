@@ -1,11 +1,13 @@
-<article class="post">
-  <img class="post-cover" src="{{ cover }}" alt="{{ title }}">
+<article class="post" itemscope itemtype="https://schema.org/BlogPosting">
+  <img class="post-cover" src="{{ cover }}" alt="{{ title }}" itemprop="image">
   <header class="post-header">
-    <time>{{ date_formatted }}</time>
-    <h1>{{ title }}</h1>
+    <time datetime="{{ date }}" itemprop="datePublished">{{ date_formatted }}</time>
+    <h1 itemprop="headline">{{ title }}</h1>
   </header>
-  <div class="post-content">
+  <div class="post-content" itemprop="articleBody">
     {{ content }}
   </div>
-  <a href="../index.html" class="back-link">{{ back_text }}</a>
+  <footer class="post-footer">
+    <a href="../index.html" class="back-link">{{ back_text }}</a>
+  </footer>
 </article>
