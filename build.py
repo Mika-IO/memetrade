@@ -32,7 +32,7 @@ TEMPLATE_DIR = ROOT / "templates"
 # ── Config do blog (edite aqui) ──────────────────────────────
 SITE_TITLE = "MEMETRADE"
 SITE_DESC = "The Latest Viral News"
-SITE_URL = "memetrade.org"
+SITE_URL = "https://memetrade.org"
 LANGUAGES = ["en", "pt", "es"]
 DEFAULT_LANG = "en"
 POSTS_PER_PAGE = 12
@@ -378,7 +378,7 @@ def build():
     # Sitemap com lastmod
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     for url, lastmod in sitemap_entries:
-        sitemap += f'  <url><loc>https://{url}</loc><lastmod>{lastmod}</lastmod></url>\n'
+        sitemap += f'  <url><loc>{url}</loc><lastmod>{lastmod}</lastmod></url>\n'
     sitemap += '</urlset>'
     (DOCS_DIR / "sitemap.xml").write_text(sitemap, encoding="utf-8")
     print(f"  ✅ sitemap.xml ({len(sitemap_entries)} URLs)")

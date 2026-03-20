@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: memetrade.org/sitemap.xml
+Sitemap: https://memetrade.org/sitemap.xml
