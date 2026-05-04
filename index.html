@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>memetrade — mercados preditivos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0c0b09;
+    --bg-soft: #131110;
+    --bg-card: #16140f;
+    --bg-elev: #1c1a14;
+    --border: #2a2620;
+    --border-soft: #1f1c17;
+    --text: #f4ede0;
+    --text-muted: #8a8478;
+    --text-dim: #5a554c;
+    --yes: #c4f042;
+    --yes-bg: rgba(196, 240, 66, 0.08);
+    --no: #ff5536;
+    --no-bg: rgba(255, 85, 54, 0.08);
+    --amber: #f4a623;
+    --serif: 'Instrument Serif', serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 14.5px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.93 0 0 0 0 0.87 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1; opacity: 0.4; mix-blend-mode: overlay;
+  }
+  body > * { position: relative; z-index: 2; }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+  /* TICKER */
+  .ticker {
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border-soft);
+    height: 36px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+  }
+  .ticker-label {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 16px;
+    border-right: 1px solid var(--border-soft);
+    height: 100%;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--yes);
+    animation: pulse 1.6s infinite;
+  }
+  .ticker-track {
+    display: flex; gap: 40px;
+    animation: slide 80s linear infinite;
+    white-space: nowrap;
+    padding-left: 40px;
+  }
+  @keyframes slide {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .ticker-item { display: inline-flex; align-items: center; gap: 8px; }
+  .ticker-item .q { color: var(--text-muted); }
+  .ticker-item .up { color: var(--yes); }
+  .ticker-item .down { color: var(--no); }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(12, 11, 9, 0.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .header-top { max-width: 1440px; margin: 0 auto; padding: 18px 28px; display: flex; align-items: center; gap: 32px; }
+  .logo { font-family: var(--serif); font-style: italic; font-size: 30px; line-height: 1; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 2px; flex-shrink: 0; }
+  .logo .dot { color: var(--yes); font-style: normal; font-size: 10px; transform: translateY(-12px); display: inline-block; }
+  nav.main { display: flex; gap: 28px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+  nav.main a { transition: color 0.15s; position: relative; padding: 4px 0; }
+  nav.main a:hover { color: var(--text); }
+  nav.main a.active { color: var(--text); }
+  nav.main a.active::after { content: ''; position: absolute; bottom: -22px; left: 0; right: 0; height: 2px; background: var(--yes); }
+  .search { flex: 1; max-width: 360px; margin-left: auto; position: relative; }
+  .search input { width: 100%; background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text); padding: 10px 14px 10px 38px; border-radius: 8px; font-family: inherit; font-size: 13.5px; transition: border-color 0.15s; }
+  .search input::placeholder { color: var(--text-dim); }
+  .search input:focus { outline: none; border-color: var(--text-dim); }
+  .search .icon-l { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+  .header-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+  .btn { padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: 7px; transition: all 0.15s; letter-spacing: 0.01em; }
+  .btn-ghost { color: var(--text-muted); }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-primary { background: var(--yes); color: #0a0902; }
+  .btn-primary:hover { background: #d4ff3a; transform: translateY(-1px); }
+  .icon-btn { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.15s; }
+  .icon-btn:hover { color: var(--text); border-color: var(--border); }
+
+  /* MAIN */
+  main { max-width: 1440px; margin: 0 auto; padding: 20px 28px; }
+  .top-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; margin-bottom: 18px; }
+
+  /* FEATURED */
+  .featured { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .featured-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .avatar-lg { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-style: italic; font-size: 22px; color: white; font-weight: 700; box-shadow: 0 0 0 1px var(--border) inset; }
+  .featured-head .info { flex: 1; min-width: 0; }
+  .breadcrumb { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+  .breadcrumb .sep { color: var(--text-dim); }
+  .featured-title { font-family: var(--serif); font-size: 22px; line-height: 1.15; letter-spacing: -0.015em; font-weight: 400; }
+  .featured-icons { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-action { width: 30px; height: 30px; border-radius: 7px; background: var(--bg-soft); border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.15s; }
+  .icon-action:hover { color: var(--text); }
+
+  .featured-body { display: grid; grid-template-columns: 220px 1fr; gap: 24px; margin-bottom: 16px; }
+  .prob-list { display: flex; flex-direction: column; gap: 12px; }
+  .prob-row-feat { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .prob-row-feat .date { color: var(--text-muted); font-size: 13.5px; }
+  .prob-row-feat .pct { font-family: var(--serif); font-size: 22px; line-height: 1; letter-spacing: -0.02em; }
+  .prob-row-feat .pct.up { color: var(--text); }
+  .prob-row-feat.active .pct { color: var(--yes); font-style: italic; font-size: 26px; }
+
+  .chart-wrap { position: relative; }
+  .chart-legend { display: flex; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+  .chart-legend .item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-muted); }
+  .chart-legend .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .chart-legend .item .v { color: var(--text); font-family: var(--mono); margin-left: 3px; font-size: 11px; }
+  .chart { width: 100%; height: 110px; position: relative; }
+  .chart svg { width: 100%; height: 100%; display: block; }
+  .chart .y-labels { position: absolute; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--text-dim); pointer-events: none; }
+  .chart .x-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--text-dim); margin-top: 4px; padding-right: 28px; }
+
+  .featured-news { border-top: 1px solid var(--border-soft); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .news-item { display: flex; gap: 10px; align-items: center; }
+  .news-source { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 12px; font-weight: 700; color: white; }
+  .news-source.nyt { background: #000; font-style: italic; }
+  .news-source.reuters { background: #ff8000; }
+  .news-source.folha { background: #1a1a1a; color: var(--amber); }
+  .news-content { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+  .news-meta { font-family: var(--mono); font-size: 9.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0; }
+  .news-meta .src { color: var(--text-muted); }
+  .news-title { font-size: 13px; color: var(--text); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .featured-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+  .featured-foot .vol { color: var(--text-muted); }
+  .featured-foot .vol strong { color: var(--text); font-weight: 500; }
+
+  .pager { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 24px; padding: 0 4px; }
+  .pager-dots { display: flex; gap: 5px; }
+  .pager-dots span { width: 18px; height: 3px; background: var(--border); border-radius: 2px; }
+  .pager-dots span.active { background: var(--text-muted); width: 28px; }
+  .pager-arrows { display: flex; gap: 6px; }
+  .pager-btn { padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 8px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .pager-btn:hover { color: var(--text); border-color: var(--border); }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 14px; }
+  .side-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .side-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .side-head h3 { font-family: var(--serif); font-size: 20px; line-height: 1; font-weight: 400; letter-spacing: -0.01em; }
+  .side-head .more { color: var(--text-muted); transition: color 0.15s; display: flex; align-items: center; }
+  .side-head .more:hover { color: var(--text); }
+
+  .side-list { display: flex; flex-direction: column; }
+  .side-item { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border-soft); cursor: pointer; transition: opacity 0.15s; }
+  .side-list .side-item:first-child, .side-list .topic-item:first-child { border-top: none; padding-top: 2px; }
+  .side-item:hover, .topic-item:hover { opacity: 0.85; }
+  .side-item .num, .topic-item .num { font-family: var(--mono); font-size: 12px; color: var(--text-dim); width: 12px; flex-shrink: 0; }
+  .side-item .text { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text); line-height: 1.3; }
+  .side-item .right { flex-shrink: 0; text-align: right; font-family: var(--mono); }
+  .side-item .right .pct { font-family: var(--serif); font-style: italic; font-size: 18px; line-height: 1; color: var(--text); }
+  .side-item .right .delta { font-size: 10px; margin-top: 1px; }
+  .side-item .right .delta.up { color: var(--yes); }
+  .side-item .right .delta.down { color: var(--no); }
+
+  .topic-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border-soft); cursor: pointer; }
+  .topic-item .topic-av { width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: 700; }
+  .topic-item .topic-name { flex: 1; font-size: 13px; color: var(--text); }
+  .topic-item .topic-vol { font-family: var(--mono); font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+  .topic-item .topic-vol::after { content: '🔥'; font-size: 11px; }
+  .topic-item .arrow { color: var(--text-dim); }
+
+  .explore-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 11px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .explore-btn:hover { background: var(--bg-elev); border-color: var(--text-dim); }
+
+  /* ALL MARKETS */
+  .markets-section { margin-bottom: 64px; }
+  .markets-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .markets-head h2 { font-family: var(--serif); font-size: 28px; font-weight: 400; letter-spacing: -0.015em; }
+  .markets-head .actions { display: flex; gap: 8px; }
+
+  .pills { display: flex; gap: 6px; margin-bottom: 18px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .pills::-webkit-scrollbar { display: none; }
+  .pill { padding: 9px 18px; border-radius: 999px; font-size: 13.5px; color: var(--text-muted); font-weight: 500; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; }
+  .pill:hover { color: var(--text); background: var(--bg-card); }
+  .pill.active { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 8px 17px; }
+
+  .markets-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .market { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all 0.18s; cursor: pointer; display: flex; flex-direction: column; }
+  .market:hover { border-color: var(--text-dim); transform: translateY(-1px); }
+
+  .market-top { display: flex; gap: 10px; margin-bottom: 14px; }
+  .avatar-sm { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 18px; color: white; font-weight: 700; box-shadow: 0 0 0 1px var(--border) inset; }
+  .market-q { font-size: 14.5px; line-height: 1.3; color: var(--text); font-weight: 500; flex: 1; }
+
+  .market.big-pct .market-top { margin-bottom: 12px; }
+  .market.big-pct .pct-circle { flex-shrink: 0; text-align: center; margin-left: auto; }
+  .pct-circle { position: relative; width: 64px; height: 64px; }
+  .pct-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .pct-circle .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+  .pct-circle .ring-fg { fill: none; stroke: var(--yes); stroke-width: 4; stroke-linecap: round; }
+  .pct-circle .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--serif); font-style: italic; line-height: 0.95; }
+  .pct-circle .label .v { font-size: 17px; }
+  .pct-circle .label .l { font-family: var(--mono); font-style: normal; font-size: 9px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; }
+
+  .market-rows { display: flex; flex-direction: column; gap: 8px; margin: auto 0 12px; padding-top: 4px; }
+  .m-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .m-row .lbl { color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-row .pct { font-family: var(--serif); font-style: italic; font-size: 18px; line-height: 1; color: var(--text); width: 44px; text-align: right; }
+  .m-row .pct.up { color: var(--yes); }
+  .m-row .yn-buttons { display: flex; gap: 4px; }
+  .m-row .ynb { padding: 4px 9px; border-radius: 5px; font-size: 11.5px; font-weight: 600; font-family: var(--mono); transition: all 0.15s; }
+  .m-row .ynb.y { background: var(--yes-bg); color: var(--yes); border: 1px solid rgba(196, 240, 66, 0.2); }
+  .m-row .ynb.y:hover { background: rgba(196, 240, 66, 0.15); }
+  .m-row .ynb.n { background: var(--no-bg); color: var(--no); border: 1px solid rgba(255, 85, 54, 0.2); }
+  .m-row .ynb.n:hover { background: rgba(255, 85, 54, 0.15); }
+
+  .yn-big { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: auto 0 12px; padding-top: 4px; }
+  .yn-big button { padding: 10px; border-radius: 7px; font-size: 13px; font-weight: 600; font-family: var(--mono); transition: all 0.15s; }
+  .yn-big .y { background: var(--yes-bg); color: var(--yes); border: 1px solid rgba(196, 240, 66, 0.25); }
+  .yn-big .y:hover { background: rgba(196, 240, 66, 0.18); }
+  .yn-big .n { background: var(--no-bg); color: var(--no); border: 1px solid rgba(255, 85, 54, 0.25); }
+  .yn-big .n:hover { background: rgba(255, 85, 54, 0.18); }
+
+  .market-foot { display: flex; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-soft); font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; gap: 10px; }
+  .badge-novo { background: rgba(244, 166, 35, 0.12); color: var(--amber); padding: 2px 7px; border-radius: 4px; font-size: 9.5px; letter-spacing: 0.1em; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .badge-live { color: var(--yes); display: inline-flex; align-items: center; gap: 4px; font-size: 9.5px; letter-spacing: 0.1em; font-weight: 600; }
+  .badge-live::before { content: ''; width: 5px; height: 5px; background: var(--yes); border-radius: 50%; animation: pulse 1.6s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(196, 240, 66, 0.6); }
+    70% { box-shadow: 0 0 0 6px rgba(196, 240, 66, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(196, 240, 66, 0); }
+  }
+  .market-foot .vol { color: var(--text-muted); margin-left: auto; }
+  .market-foot .icons { display: flex; gap: 8px; color: var(--text-dim); }
+
+  /* AVATARS */
+  .av-lula { background: linear-gradient(135deg, #dc1c2e, #6a0a18); }
+  .av-bitcoin { background: linear-gradient(135deg, #f7931a, #b45f00); color: white; }
+  .av-eth { background: linear-gradient(135deg, #627eea, #2c3e8f); }
+  .av-fla { background: linear-gradient(135deg, #c4151c 0%, #c4151c 50%, #1a1a1a 50%, #1a1a1a 100%); }
+  .av-cbf { background: linear-gradient(135deg, #ffdf00, #009c3b); color: #002776; }
+  .av-trump { background: linear-gradient(135deg, #f4a623, #b06d00); }
+  .av-comey { background: linear-gradient(135deg, #2a4a6e, #0f1c2e); }
+  .av-selic { background: linear-gradient(135deg, #c4f042, #6a8a1e); color: #0a0902; }
+  .av-pib { background: linear-gradient(135deg, #4ade80, #15803d); color: white; }
+  .av-powell { background: linear-gradient(135deg, #6b7280, #1f2937); }
+  .av-ts { background: linear-gradient(135deg, #ec4899, #831843); }
+  .av-gpt { background: linear-gradient(135deg, #1a1a1a, #000); border: 1px solid var(--border) !important; }
+  .av-ucl { background: linear-gradient(135deg, #0a4ea8, #001a4d); }
+  .av-iran { background: linear-gradient(135deg, #239f40, #ee293b); }
+  .av-opec { background: linear-gradient(135deg, #1a1a1a, #4a3a1a); color: var(--amber); }
+  .av-india { background: linear-gradient(135deg, #ff9933, #138808); color: white; }
+  .av-clima { background: linear-gradient(135deg, #06b6d4, #0e7490); }
+  .av-musk-altman { background: linear-gradient(135deg, #1f2937 0%, #1f2937 50%, #10a37f 50%, #10a37f 100%); }
+  .av-fed { background: linear-gradient(135deg, #047857, #064e3b); }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border-soft); padding: 48px 28px 28px; background: var(--bg-soft); margin-top: 48px; }
+  .footer-inner { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap: 36px; margin-bottom: 40px; }
+  .footer-brand p { color: var(--text-muted); font-size: 13px; line-height: 1.55; max-width: 280px; margin-top: 14px; }
+  .footer-col h4 { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-dim); margin-bottom: 16px; font-weight: 500; }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .footer-col a { font-size: 13px; color: var(--text-muted); transition: color 0.15s; }
+  .footer-col a:hover { color: var(--text); }
+  .footer-bot { max-width: 1440px; margin: 0 auto; padding-top: 24px; border-top: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center; gap: 24px; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); letter-spacing: 0.06em; }
+  .footer-bot .disclaimer { max-width: 700px; line-height: 1.55; }
+
+  @media (max-width: 1200px) { .top-grid { grid-template-columns: 1fr; } .markets-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 880px) { .markets-grid { grid-template-columns: repeat(2, 1fr); } .featured-body { grid-template-columns: 1fr; gap: 22px; } .footer-inner { grid-template-columns: 1fr 1fr; } .header-top { flex-wrap: wrap; } .search { order: 5; flex-basis: 100%; max-width: none; } }
+  @media (max-width: 540px) { .markets-grid { grid-template-columns: 1fr; } .footer-inner { grid-template-columns: 1fr; } .featured-title { font-size: 24px; } }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-label"><span class="pulse-dot"></span> AO VIVO</div>
+  <div class="ticker-track">
+    <div class="ticker-item"><span class="q">Lula aprovação > 40%</span> <span class="up">▲ 47%</span> <span class="up">+2.1</span></div>
+    <div class="ticker-item"><span class="q">Bitcoin > $150k em 2026</span> <span class="up">▲ 38%</span> <span class="up">+0.8</span></div>
+    <div class="ticker-item"><span class="q">Flamengo Brasileirão</span> <span class="up">▲ 31%</span> <span class="down">−1.4</span></div>
+    <div class="ticker-item"><span class="q">Brasil final Copa 2026</span> <span class="up">▲ 22%</span> <span class="up">+3.7</span></div>
+    <div class="ticker-item"><span class="q">Selic < 10% até dez/26</span> <span class="up">▲ 64%</span> <span class="up">+1.2</span></div>
+    <div class="ticker-item"><span class="q">Taylor Swift no Brasil 2026</span> <span class="down">▼ 18%</span> <span class="down">−0.5</span></div>
+    <div class="ticker-item"><span class="q">PIB > 2.5%</span> <span class="up">▲ 41%</span> <span class="up">+0.3</span></div>
+    <div class="ticker-item"><span class="q">Trump tarifa Brasil</span> <span class="up">▲ 56%</span> <span class="up">+4.2</span></div>
+    <div class="ticker-item"><span class="q">Lula aprovação > 40%</span> <span class="up">▲ 47%</span> <span class="up">+2.1</span></div>
+    <div class="ticker-item"><span class="q">Bitcoin > $150k em 2026</span> <span class="up">▲ 38%</span> <span class="up">+0.8</span></div>
+    <div class="ticker-item"><span class="q">Flamengo Brasileirão</span> <span class="up">▲ 31%</span> <span class="down">−1.4</span></div>
+    <div class="ticker-item"><span class="q">Brasil final Copa 2026</span> <span class="up">▲ 22%</span> <span class="up">+3.7</span></div>
+    <div class="ticker-item"><span class="q">Selic < 10% até dez/26</span> <span class="up">▲ 64%</span> <span class="up">+1.2</span></div>
+    <div class="ticker-item"><span class="q">Taylor Swift no Brasil 2026</span> <span class="down">▼ 18%</span> <span class="down">−0.5</span></div>
+    <div class="ticker-item"><span class="q">PIB > 2.5%</span> <span class="up">▲ 41%</span> <span class="up">+0.3</span></div>
+    <div class="ticker-item"><span class="q">Trump tarifa Brasil</span> <span class="up">▲ 56%</span> <span class="up">+4.2</span></div>
+  </div>
+</div>
+
+<header>
+  <div class="header-top">
+    <a href="#" class="logo">memetrade<span class="dot">●</span></a>
+    <nav class="main">
+      <a href="#" class="active">Mercados</a>
+      <a href="#">Política</a>
+      <a href="#">Esportes</a>
+      <a href="#">Cripto</a>
+      <a href="#">Cultura</a>
+      <a href="#">Ranking</a>
+    </nav>
+    <div class="search">
+      <svg class="icon-l" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Buscar mercados, eventos, traders…" />
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost">Entrar</button>
+      <button class="btn btn-primary">Cadastrar</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="top-grid">
+
+    <!-- FEATURED -->
+    <div class="featured">
+      <div class="featured-head">
+        <div class="avatar-lg av-lula">L</div>
+        <div class="info">
+          <div class="breadcrumb">Política <span class="sep">·</span> Lula <span class="sep">·</span> Aprovação</div>
+          <h1 class="featured-title">Lula terminará 2026 com aprovação acima de 40%?</h1>
+        </div>
+        <div class="featured-icons">
+          <button class="icon-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71"/></svg></button>
+          <button class="icon-action"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="featured-body">
+        <div class="prob-list">
+          <div class="prob-row-feat"><span class="date">29 abril</span><span class="pct up">42%</span></div>
+          <div class="prob-row-feat"><span class="date">15 maio</span><span class="pct up">44%</span></div>
+          <div class="prob-row-feat active"><span class="date">31 dezembro</span><span class="pct">47%</span></div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-legend">
+            <div class="item"><span class="dot" style="background:#c4f042"></span>31 dez<span class="v">47%</span></div>
+            <div class="item"><span class="dot" style="background:#6dd5ff"></span>15 maio<span class="v">44%</span></div>
+            <div class="item"><span class="dot" style="background:#f4a623"></span>29 abril<span class="v">42%</span></div>
+          </div>
+          <div class="chart">
+            <svg viewBox="0 0 600 110" preserveAspectRatio="none">
+              <defs><linearGradient id="gFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#c4f042" stop-opacity="0.18"/><stop offset="100%" stop-color="#c4f042" stop-opacity="0"/></linearGradient></defs>
+              <line x1="0" y1="0" x2="560" y2="0" stroke="#1f1c17" stroke-width="1"/>
+              <line x1="0" y1="27" x2="560" y2="27" stroke="#1f1c17" stroke-width="1" stroke-dasharray="2 4"/>
+              <line x1="0" y1="55" x2="560" y2="55" stroke="#1f1c17" stroke-width="1" stroke-dasharray="2 4"/>
+              <line x1="0" y1="82" x2="560" y2="82" stroke="#1f1c17" stroke-width="1" stroke-dasharray="2 4"/>
+              <line x1="0" y1="110" x2="560" y2="110" stroke="#1f1c17" stroke-width="1"/>
+              <path d="M0,66 L40,68 L80,64 L120,72 L160,61 L200,56 L240,66 L280,60 L320,54 L360,58 L400,50 L440,54 L480,46 L520,49 L560,44" fill="none" stroke="#f4a623" stroke-width="1.4"/>
+              <path d="M0,60 L40,58 L80,54 L120,56 L160,49 L200,46 L240,50 L280,44 L320,42 L360,45 L400,38 L440,42 L480,34 L520,37 L560,32" fill="none" stroke="#6dd5ff" stroke-width="1.4"/>
+              <path d="M0,55 L40,52 L80,44 L120,48 L160,42 L200,38 L240,44 L280,37 L320,32 L360,35 L400,28 L440,30 L480,23 L520,27 L560,18 L560,110 L0,110 Z" fill="url(#gFill)"/>
+              <path d="M0,55 L40,52 L80,44 L120,48 L160,42 L200,38 L240,44 L280,37 L320,32 L360,35 L400,28 L440,30 L480,23 L520,27 L560,18" fill="none" stroke="#c4f042" stroke-width="1.8"/>
+              <circle cx="560" cy="18" r="3.5" fill="#c4f042"/>
+              <circle cx="560" cy="32" r="2.5" fill="#6dd5ff"/>
+              <circle cx="560" cy="44" r="2.5" fill="#f4a623"/>
+            </svg>
+            <div class="y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
+          </div>
+          <div class="x-labels"><span>JAN</span><span>FEV</span><span>MAR</span><span>ABR</span><span>MAI</span><span>JUN</span><span>JUL</span><span>AGO</span></div>
+        </div>
+      </div>
+
+      <div class="featured-news">
+        <div class="news-item">
+          <div class="news-source folha">F</div>
+          <div class="news-content">
+            <div class="news-title">Datafolha: aprovação de Lula sobe a 41% após pacote fiscal</div>
+            <div class="news-meta"><span class="src">FOLHA</span> · 4H</div>
+          </div>
+        </div>
+        <div class="news-item">
+          <div class="news-source reuters">R</div>
+          <div class="news-content">
+            <div class="news-title">Brazil's Lula approval ticks up as inflation eases, pension reform advances</div>
+            <div class="news-meta"><span class="src">REUTERS</span> · 12H</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="featured-foot">
+        <span class="vol">VOLUME · <strong>R$ 8,4M</strong> · 4,2K TRADERS</span>
+        <span>TERMINA EM 31 DEZ 2026 · memetrade</span>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <div class="side-card">
+        <div class="side-head">
+          <h3>Últimas notícias</h3>
+          <a href="#" class="more"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+        <div class="side-list">
+          <div class="side-item">
+            <span class="num">1</span>
+            <span class="text">Bitcoin ultrapassará US$ 150 mil em 2026?</span>
+            <div class="right"><div class="pct">38%</div><div class="delta up">↗ +2.1</div></div>
+          </div>
+          <div class="side-item">
+            <span class="num">2</span>
+            <span class="text">Brasil chegará à final da Copa de 2026?</span>
+            <div class="right"><div class="pct">22%</div><div class="delta up">↗ +3.7</div></div>
+          </div>
+          <div class="side-item">
+            <span class="num">3</span>
+            <span class="text">Trump imporá novas tarifas ao Brasil?</span>
+            <div class="right"><div class="pct">56%</div><div class="delta up">↗ +4.2</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <h3>Tópicos quentes</h3>
+          <a href="#" class="more"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>
+        </div>
+        <div class="side-list">
+          <div class="topic-item"><span class="num">1</span><div class="topic-av av-lula">L</div><span class="topic-name">Lula 2026</span><span class="topic-vol">R$ 8M</span><svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="topic-item"><span class="num">2</span><div class="topic-av av-bitcoin">₿</div><span class="topic-name">Bitcoin</span><span class="topic-vol">R$ 6,2M</span><svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="topic-item"><span class="num">3</span><div class="topic-av av-cbf">⚽</div><span class="topic-name">Copa do Mundo</span><span class="topic-vol">R$ 14M</span><svg class="arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+
+      <button class="explore-btn">Explorar tudo</button>
+
+    </aside>
+  </div>
+
+  <div class="pager">
+    <div class="pager-dots"><span class="active"></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="pager-arrows">
+      <button class="pager-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> Comey indiciado</button>
+      <button class="pager-btn">BTC 5min cima ou baixo <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ALL MARKETS -->
+  <section class="markets-section">
+    <div class="markets-head">
+      <h2>Todos os mercados</h2>
+      <div class="actions">
+        <button class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+        <button class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor"/></svg></button>
+        <button class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+      </div>
+    </div>
+
+    <div class="pills">
+      <button class="pill active">Todos</button>
+      <button class="pill">Eleições BR 2026</button>
+      <button class="pill">Lula</button>
+      <button class="pill">Trump</button>
+      <button class="pill">Bitcoin</button>
+      <button class="pill">Brasileirão</button>
+      <button class="pill">Copa do Mundo</button>
+      <button class="pill">Champions</button>
+      <button class="pill">Selic</button>
+      <button class="pill">PIB</button>
+      <button class="pill">OPEP</button>
+      <button class="pill">Petróleo</button>
+      <button class="pill">Powell</button>
+      <button class="pill">Musk vs Altman</button>
+      <button class="pill">Cessar-fogo</button>
+    </div>
+
+    <div class="markets-grid">
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-lula">L</div>
+          <div class="market-q">Lula terminará 2026 com aprovação acima de 40%?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="93.24"/></svg><div class="label"><span class="v">47%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,47</button><button class="n">Não · 0,53</button></div>
+        <div class="market-foot"><span class="badge-live">AO VIVO</span><span class="vol">R$ 8,4M Vol.</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-bitcoin">₿</div>
+          <div class="market-q">BTC para cima ou para baixo nos próximos 5 minutos?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="86.21"/></svg><div class="label"><span class="v">51%</span><span class="l">Up</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Up · 0,51</button><button class="n">Down · 0,49</button></div>
+        <div class="market-foot"><span class="badge-live">AO VIVO</span><span style="color:var(--text-muted)">Bitcoin</span><span class="vol">R$ 1,2M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-comey">JC</div>
+          <div class="market-q">James Comey foi condenado à prisão em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">Sim, antes de jul</span><span class="pct">10%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Sim, ano todo</span><span class="pct">28%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span class="badge-novo">✦ NOVO</span><span class="vol">R$ 13K Vol.</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-powell">$</div>
+          <div class="market-q">O que Powell dirá durante a conferência de imprensa?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">Boa Tarde</span><span class="pct up">99%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Petróleo</span><span class="pct">96%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span class="vol" style="margin-left:0">R$ 273K Vol.</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-cbf">⚽</div>
+          <div class="market-q">O Brasil chegará à final da Copa do Mundo de 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="137.22"/></svg><div class="label"><span class="v">22%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,22</button><button class="n">Não · 0,78</button></div>
+        <div class="market-foot"><span class="badge-novo">✦ NOVO</span><span class="vol">R$ 14,2M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-trump">T</div>
+          <div class="market-q">Trump imporá novas tarifas ao Brasil até o fim de 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="77.41"/></svg><div class="label"><span class="v">56%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,56</button><button class="n">Não · 0,44</button></div>
+        <div class="market-foot"><span style="color:var(--yes)">↗ +4.2 hoje</span><span class="vol">R$ 11,8M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-selic">%</div>
+          <div class="market-q">A Selic estará abaixo de 10% no final de 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="63.33"/></svg><div class="label"><span class="v">64%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,64</button><button class="n">Não · 0,36</button></div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Economia</span><span class="vol">R$ 6,1M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-fla">F</div>
+          <div class="market-q">Quem vencerá o Brasileirão Série A 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">Flamengo</span><span class="pct">31%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Palmeiras</span><span class="pct">26%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Brasileirão</span><span class="vol">R$ 4,2M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-bitcoin">₿</div>
+          <div class="market-q">Bitcoin ultrapassará US$ 150 mil até dezembro de 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="109.08"/></svg><div class="label"><span class="v">38%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,38</button><button class="n">Não · 0,62</button></div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Cripto</span><span class="vol">R$ 9,7M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-ucl">★</div>
+          <div class="market-q">Quem vence a Champions League 2025/26?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">Real Madrid</span><span class="pct">24%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Man City</span><span class="pct">19%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">UCL</span><span class="vol">R$ 22M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-gpt">✦</div>
+          <div class="market-q">A OpenAI lançará o GPT-6 publicamente em 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="47.50"/></svg><div class="label"><span class="v">73%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,73</button><button class="n">Não · 0,27</button></div>
+        <div class="market-foot"><span class="badge-novo">✦ NOVO</span><span class="vol">R$ 7,8M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-iran">⚐</div>
+          <div class="market-q">Estreito de Ormuz será fechado pelo Irã em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">Antes de junho</span><span class="pct">8%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Em 2026</span><span class="pct">17%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Geopolítica</span><span class="vol">R$ 3,1M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-pib">📈</div>
+          <div class="market-q">O PIB do Brasil crescerá mais de 2,5% em 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="103.80"/></svg><div class="label"><span class="v">41%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,41</button><button class="n">Não · 0,59</button></div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Macro Brasil</span><span class="vol">R$ 3,4M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-eth">Ξ</div>
+          <div class="market-q">ETH ultrapassará US$ 6.000 antes de julho de 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="124.91"/></svg><div class="label"><span class="v">29%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,29</button><button class="n">Não · 0,71</button></div>
+        <div class="market-foot"><span style="color:var(--no)">↘ −2.1</span><span class="vol">R$ 5,3M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-india">⚐</div>
+          <div class="market-q">Quem vence as eleições gerais da Índia em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">BJP (Modi)</span><span class="pct up">68%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Congresso</span><span class="pct">21%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span class="badge-novo">✦ NOVO</span><span class="vol">R$ 1,8M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-ts">★</div>
+          <div class="market-q">Taylor Swift fará shows no Brasil em 2026?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke="#ff5536" stroke-dasharray="175.93" stroke-dashoffset="144.26"/></svg><div class="label"><span class="v" style="color:var(--no)">18%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,18</button><button class="n">Não · 0,82</button></div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Cultura</span><span class="vol">R$ 1,9M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-musk-altman" style="font-size:11px">vs</div>
+          <div class="market-q">Musk vs Altman: quem terá maior valuation em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">xAI (Musk)</span><span class="pct">42%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">OpenAI (Altman)</span><span class="pct up">58%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Tecnologia</span><span class="vol">R$ 8,9M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-opec">⛽</div>
+          <div class="market-q">A OPEP+ cortará produção em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">1º semestre</span><span class="pct">37%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">Ano todo</span><span class="pct up">62%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">OPEP</span><span class="vol">R$ 4,7M</span></div>
+      </div>
+
+      <div class="market big-pct">
+        <div class="market-top">
+          <div class="avatar-sm av-clima">☁</div>
+          <div class="market-q">2026 será o ano mais quente já registrado?</div>
+          <div class="pct-circle"><svg viewBox="0 0 64 64"><circle class="ring-bg" cx="32" cy="32" r="28"/><circle class="ring-fg" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="68.61"/></svg><div class="label"><span class="v">61%</span><span class="l">Sim</span></div></div>
+        </div>
+        <div class="yn-big"><button class="y">Sim · 0,61</button><button class="n">Não · 0,39</button></div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Clima</span><span class="vol">R$ 2,8M</span></div>
+      </div>
+
+      <div class="market">
+        <div class="market-top">
+          <div class="avatar-sm av-fed">$</div>
+          <div class="market-q">Fed fará quantos cortes na taxa de juros em 2026?</div>
+        </div>
+        <div class="market-rows">
+          <div class="m-row"><span class="lbl">2 cortes</span><span class="pct up">44%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+          <div class="m-row"><span class="lbl">3 ou mais</span><span class="pct">31%</span><span class="yn-buttons"><button class="ynb y">Sim</button><button class="ynb n">Não</button></span></div>
+        </div>
+        <div class="market-foot"><span style="color:var(--text-muted)">Fed</span><span class="vol">R$ 12M</span></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="#" class="logo">memetrade<span class="dot">●</span></a>
+      <p>A maior plataforma brasileira de mercados preditivos. Transparência, liquidez e inteligência coletiva.</p>
+    </div>
+    <div class="footer-col"><h4>Mercados</h4><ul><li><a href="#">Política</a></li><li><a href="#">Esportes</a></li><li><a href="#">Economia</a></li><li><a href="#">Cripto</a></li><li><a href="#">Cultura</a></li></ul></div>
+    <div class="footer-col"><h4>Plataforma</h4><ul><li><a href="#">Como funciona</a></li><li><a href="#">Taxas</a></li><li><a href="#">API</a></li><li><a href="#">Ranking</a></li><li><a href="#">Indique e ganhe</a></li></ul></div>
+    <div class="footer-col"><h4>Empresa</h4><ul><li><a href="#">Sobre</a></li><li><a href="#">Blog</a></li><li><a href="#">Imprensa</a></li><li><a href="#">Carreiras</a></li><li><a href="#">Contato</a></li></ul></div>
+    <div class="footer-col"><h4>Legal</h4><ul><li><a href="#">Termos de uso</a></li><li><a href="#">Privacidade</a></li><li><a href="#">Jogo responsável</a></li><li><a href="#">Regulamentação</a></li><li><a href="#">Suporte</a></li></ul></div>
+  </div>
+  <div class="footer-bot">
+    <span>© 2026 memetrade TECH LTDA · CNPJ XX.XXX.XXX/0001-XX</span>
+    <span class="disclaimer">JOGO PARA MAIORES DE 18 ANOS · APOSTE COM RESPONSABILIDADE</span>
+  </div>
+</footer>
+
+</body>
+</html>
